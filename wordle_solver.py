@@ -20,7 +20,7 @@ from rich.logging import RichHandler
 from rich.progress import track
 
 from wordle import Wordle, Wordlist, Clue
-from wordle.solver import NaiveFrequencySolver
+from wordle.solver import NaiveFrequencySolver, FlexFrequencySolver
 
 logging.basicConfig(
     level="INFO",
@@ -33,7 +33,7 @@ console = Console()
 
 
 def format_clue(clue):
-    return ''.join(c.as_emoji() for c in clue)
+    return "".join(c.as_emoji() for c in clue)
 
 
 def run_trial(solver, wordlist):
@@ -54,7 +54,7 @@ def main(args):
     wordlist = Wordlist(args["WORDLIST"])
     log.info(f"Loaded wordlist with {len(wordlist)} entries of length 5.")
 
-    solver = NaiveFrequencySolver(wordlist)
+    solver = FlexFrequencySolver(wordlist)
     log.info(f"Using {solver}")
 
     stats = {True: 0, False: 0}
@@ -67,7 +67,7 @@ def main(args):
 
     log.info(f"[green]      Won: {stats[True]:6d}[/]")
     log.info(f"[red]     Lost: {stats[False]:6d}[/]")
-    win_rate = 100. * stats[True] / (stats[True] + stats[False])
+    win_rate = 100.0 * stats[True] / (stats[True] + stats[False])
     avg_rounds = sum(rounds) / len(rounds)
     log.info(f"[blue] Win Rate:  {win_rate:5.2f}%[/]")
     log.info(f"[blue]   Rounds:  {avg_rounds:5.2f}[/]")

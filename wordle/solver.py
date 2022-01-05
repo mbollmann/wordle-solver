@@ -3,6 +3,7 @@ from . import WORDLE_LENGTH
 from .game import Clue
 
 import logging
+
 log = logging.getLogger("rich")
 
 
@@ -26,11 +27,15 @@ class Constraints:
                 self.must_not_contain.add(letter)
         self.is_empty = False
 
-    def fits_constraints(self, word):
+    def fits_constraints(self, word, invert_greens=False):
         if self.is_empty:  # no clues yet
             return True
         for pos, letter in enumerate(word):
-            if self.found_letters[pos] is not None and self.found_letters[pos] != letter:
+            if (
+                self.found_letters[pos] is not None
+                and not invert_greens
+                and self.found_letters[pos] != letter
+            ):
                 return False
             if letter in self.must_contain and pos in self.must_contain[letter]:
                 # letter must be in there, but is in wrong position ("yellow" clue)
@@ -38,6 +43,10 @@ class Constraints:
             if letter in self.must_not_contain:
                 return False
         if not all(letter in word for letter in self.must_contain):
+            return False
+        if invert_greens and any(
+            letter in word for letter in self.found_letters if letter is not None
+        ):
             return False
         return True
 
@@ -75,7 +84,9 @@ class NaiveFrequencySolver(Solver):
             # No duplicate letters for the initial guess
             if len(word) != len(set(word)):
                 continue
-            candidates[word] = sum(self._words.letters[pos][letter] for pos, letter in enumerate(word))
+            candidates[word] = sum(
+                self._words.letters[pos][letter] for pos, letter in enumerate(word)
+            )
         return candidates.most_common(1)[0][0]
 
     def make_guess(self):
@@ -86,5 +97,46 @@ class NaiveFrequencySolver(Solver):
         for word in self._words:
             if not self._constraints.fits_constraints(word):
                 continue  # obey all constraints
-            candidates[word] = sum(self._words.letters[pos][letter] for pos, letter in enumerate(word))
+            candidates[word] = sum(
+                self._words.letters[pos][letter] for pos, letter in enumerate(word)
+            )
+        return candidates.most_common(1)[0][0]
+
+
+class FlexFrequencySolver(NaiveFrequencySolver):
+    """..."""
+
+    def make_guess(self):
+        if self._constraints.is_empty:
+            return self._initial_guess
+
+        # How many letters we still need to find (in the worst case,
+        # i.e. assuming no duplicate letters). Considers:
+        # - how many positions we definitely know
+        # - how many other, different letters we have already found (in the wrong position)
+        letters_to_find = (
+            WORDLE_LENGTH
+            - sum(x is not None for x in self._constraints.found_letters)
+            - len(
+                set(self._constraints.must_contain.keys())
+                - set(self._constraints.found_letters)
+            )
+        )
+
+        invert_greens = letters_to_find > 2
+
+        candidates = Counter()
+        while not candidates:
+            for word in self._words:
+                if not self._constraints.fits_constraints(
+                    word, invert_greens=invert_greens
+                ):
+                    continue  # obey all constraints
+                candidates[word] = sum(
+                    self._words.letters[pos][letter] for pos, letter in enumerate(word)
+                )
+            # In case running with invert_greens=True didn't give any
+            # candidates, this will repeat the loop without this condition
+            invert_greens = False
+
         return candidates.most_common(1)[0][0]

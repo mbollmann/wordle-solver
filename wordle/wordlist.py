@@ -5,7 +5,8 @@ from . import WORDLE_LENGTH
 
 class Wordlist(list):
     """A list of words with a fixed length that also provides
-       quick access to letter frequencies."""
+    quick access to letter frequencies."""
+
     def __init__(self, filename):
         super().__init__()
         self.letters = [None] * WORDLE_LENGTH

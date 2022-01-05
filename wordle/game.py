@@ -27,7 +27,9 @@ class GameStatus(Enum):
 
 class Wordle:
     def __init__(self, target):
-        assert len(target) == WORDLE_LENGTH, f"Word must have length {WORDLE_LENGTH}, got {target}"
+        assert (
+            len(target) == WORDLE_LENGTH
+        ), f"Word must have length {WORDLE_LENGTH}, got {target}"
         self._target = target
         self._round = 0
         self._history = []
